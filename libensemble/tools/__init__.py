@@ -6,7 +6,6 @@ from .alloc_support import avail_worker_ids, count_gens, count_persis_gens, \
     sim_work, gen_work
 from .gen_support import sendrecv_mgr_worker_msg, send_mgr_worker_msg, \
     get_mgr_worker_msg
-from .process_return import libe_return
 
 __all__ = ['save_libE_output',
            'add_unique_random_streams',
@@ -21,5 +20,4 @@ __all__ = ['save_libE_output',
            'gen_work',
            'sendrecv_mgr_worker_msg',
            'send_mgr_worker_msg',
-           'get_mgr_worker_msg',
-           'libe_return']
+           'get_mgr_worker_msg']
