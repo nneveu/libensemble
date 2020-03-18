@@ -2,7 +2,7 @@ import numpy as np
 from libensemble.tools import libe_return
 
 
-def sim_find_sine(H, persis_info, sim_specs, _, event_queue):
+def sim_find_sine(H, persis_info, sim_specs, _):
     # underscore for internal/testing arguments
 
     # Create an output array of a single zero
@@ -11,7 +11,5 @@ def sim_find_sine(H, persis_info, sim_specs, _, event_queue):
     # Set the zero to the sine of the input value stored in H
     out['y'] = np.sin(H['x'])
 
-    libe_return(out, persis_info, event_queue)
-
     # Send back our output and persis_info
-    # return out, persis_info
+    return out, persis_info
