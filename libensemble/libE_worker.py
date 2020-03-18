@@ -146,7 +146,8 @@ class Worker:
         self.prefix = ""
         self.calc_iter = {EVAL_SIM_TAG: 0, EVAL_GEN_TAG: 0}
         self.loc_stack = None
-        self._run_calc = Worker._make_runners(sim_specs, gen_specs)
+        self.do_p = libE_specs.get('do_user_func_processes', False)
+        self._run_calc = Worker._make_runners(sim_specs, gen_specs, self.do_p)
         self._calc_id_counter = count()
         Worker._set_executor(self.workerID, self.comm)
 
@@ -220,28 +221,40 @@ class Worker:
         return prefix, calc_dir
 
     @staticmethod
-    def _make_runners(sim_specs, gen_specs):
+    def _make_runners(sim_specs, gen_specs, do_p):
         "Creates functions to run a sim or gen"
-
 
         sim_f = sim_specs['sim_f']
 
-        def run_sim(calc_in, persis_info, libE_info, event_queue):
+        def run_sim(calc_in, persis_info, libE_info):
             "Calls the sim func."
-            event_queue['q'].put(Out(sim_f(calc_in, persis_info, sim_specs, libE_info)))
-            event_queue['e'].set()
+            return sim_f(calc_in, persis_info, sim_specs, libE_info)
+
+        def run_sim_p(calc_in, persis_info, libE_info, event, queue):
+            "Calls the sim func, places output into queue"
+            queue.put(Out(sim_f(calc_in, persis_info, sim_specs, libE_info)))
+            event.set()
 
         if gen_specs:
             gen_f = gen_specs['gen_f']
 
-            def run_gen(calc_in, persis_info, libE_info, event_queue):
+            def run_gen(calc_in, persis_info, libE_info):
                 "Calls the gen func."
-                event_queue['q'].put(Out(gen_f(calc_in, persis_info, gen_specs, libE_info)))
-                event_queue['e'].set()
+                return gen_f(calc_in, persis_info, gen_specs, libE_info)
+
+            def run_gen_p(calc_in, persis_info, libE_info, event, queue):
+                "Calls the gen func, places output into queue"
+                queue.put(Out(gen_f(calc_in, persis_info, gen_specs, libE_info)))
+                event.set()
+
         else:
             run_gen = []
 
-        return {EVAL_SIM_TAG: run_sim, EVAL_GEN_TAG: run_gen}
+        if do_p:
+            return {EVAL_SIM_TAG: run_sim_p, EVAL_GEN_TAG: run_gen_p}
+        else:
+            return {EVAL_SIM_TAG: run_sim, EVAL_GEN_TAG: run_gen}
+
 
     @staticmethod
     def _set_executor(workerID, comm):
@@ -308,16 +321,23 @@ class Worker:
                 Worker._better_copytree(self.prefix, copybackdir, symlinks=True)
 
     def _calc_process(self, Work, calc, calc_in):
+        """ Launch passed calc runner function as Process"""
         event = Event()
         event.clear()
         queue = Queue()
-        event_queue = {'e': event, 'q': queue}
 
         process = Process(target=calc, args=(calc_in, Work['persis_info'],
-                              Work['libE_info'], event_queue))
+                              Work['libE_info'], event, queue))
         process.start()
         event.wait()
         return queue.get().out
+
+    def _do_calc(self, Work, calc, calc_in):
+        """ Determine if traditional user func call or process launch"""
+        if self.do_p:
+            return self._calc_process(Work, calc, calc_in)
+        else:
+            return calc(calc_in, Work['persis_info'], Work['libE_info'])
 
     def _determine_dir_then_calc(self, Work, calc_type, calc_in, calc):
         "Determines choice for sim_input_dir structure, then performs calculation."
@@ -334,17 +354,14 @@ class Worker:
             if self.libE_specs.get('use_worker_dirs'):
                 with self.loc_stack.loc(self.workerID):   # Switch to Worker directory
                     with self.loc_stack.loc(calc_dir):    # Switch to Calc directory
-                        # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
-                        out = self._calc_process(Work, calc, calc_in)
+                        out = self._do_calc(Work, calc, calc_in)
             else:
                 with self.loc_stack.loc(calc_dir):        # Switch to Calc directory
-                    # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
-                    out = self._calc_process(Work, calc, calc_in)
+                    out = self._do_calc(Work, calc, calc_in)
 
             return out
 
-        # return calc(calc_in, Work['persis_info'], Work['libE_info'])
-        return self._calc_process(Work, calc, calc_in)
+        return self._do_calc(Work, calc, calc_in)
 
     def _handle_calc(self, Work, calc_in):
         """Runs a calculation on this worker object.
@@ -378,8 +395,7 @@ class Worker:
                 if calc_type == EVAL_SIM_TAG:
                     out = self._determine_dir_then_calc(Work, calc_type, calc_in, calc)
                 else:
-                    out = self._calc_process(Work, calc, calc_in)
-                    # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                    out = self._do_calc(Work, calc, calc_in)
 
                 logger.debug("Return from calc call")
 
