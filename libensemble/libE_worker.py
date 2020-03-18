@@ -100,6 +100,12 @@ class WorkerErrMsg:
         self.exc = exc
 
 
+class Out(object):
+    """ An object containing output from a user func process"""
+    def __init__(self, out):
+        self.out = out
+
+
 class Worker:
 
     """The worker class provides methods for controlling sim and gen funcs
@@ -217,18 +223,21 @@ class Worker:
     def _make_runners(sim_specs, gen_specs):
         "Creates functions to run a sim or gen"
 
+
         sim_f = sim_specs['sim_f']
 
         def run_sim(calc_in, persis_info, libE_info, event_queue):
             "Calls the sim func."
-            return sim_f(calc_in, persis_info, sim_specs, libE_info)
+            event_queue['q'].put(Out(sim_f(calc_in, persis_info, sim_specs, libE_info)))
+            event_queue['e'].set()
 
         if gen_specs:
             gen_f = gen_specs['gen_f']
 
             def run_gen(calc_in, persis_info, libE_info, event_queue):
                 "Calls the gen func."
-                return gen_f(calc_in, persis_info, gen_specs, libE_info)
+                event_queue['q'].put(Out(gen_f(calc_in, persis_info, gen_specs, libE_info)))
+                event_queue['e'].set()
         else:
             run_gen = []
 
@@ -304,9 +313,9 @@ class Worker:
         queue = Queue()
         event_queue = {'e': event, 'q': queue}
 
-        gen_process = Process(target=calc, args=(calc_in, Work['persis_info'],
+        process = Process(target=calc, args=(calc_in, Work['persis_info'],
                               Work['libE_info'], event_queue))
-        gen_process.start()
+        process.start()
         event.wait()
         return queue.get().out
 

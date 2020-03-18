@@ -1,5 +1,4 @@
 import numpy as np
-from libensemble.tools import libe_return
 
 
 def sim_find_sine(H, persis_info, sim_specs, _):

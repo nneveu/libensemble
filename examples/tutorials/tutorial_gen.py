@@ -1,5 +1,4 @@
 import numpy as np
-from libensemble.tools import libe_return
 
 
 def gen_random_sample(H, persis_info, gen_specs, _):
