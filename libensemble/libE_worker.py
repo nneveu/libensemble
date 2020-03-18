@@ -11,6 +11,7 @@ import logging.handlers
 from itertools import count, groupby
 from operator import itemgetter
 from traceback import format_exc
+from multiprocessing import Process, Queue, Event
 
 import numpy as np
 
@@ -218,16 +219,16 @@ class Worker:
 
         sim_f = sim_specs['sim_f']
 
-        def run_sim(calc_in, persis_info, libE_info):
+        def run_sim(calc_in, persis_info, libE_info, event_queue):
             "Calls the sim func."
-            return sim_f(calc_in, persis_info, sim_specs, libE_info)
+            return sim_f(calc_in, persis_info, sim_specs, libE_info, event_queue)
 
         if gen_specs:
             gen_f = gen_specs['gen_f']
 
-            def run_gen(calc_in, persis_info, libE_info):
+            def run_gen(calc_in, persis_info, libE_info, event_queue):
                 "Calls the gen func."
-                return gen_f(calc_in, persis_info, gen_specs, libE_info)
+                return gen_f(calc_in, persis_info, gen_specs, libE_info, event_queue)
         else:
             run_gen = []
 
@@ -297,6 +298,18 @@ class Worker:
                 assert os.path.isdir(copybackdir), "Manager didn't create copyback directory"
                 Worker._better_copytree(self.prefix, copybackdir, symlinks=True)
 
+    def _calc_process(self, Work, calc, calc_in):
+        event = Event()
+        event.clear()
+        queue = Queue()
+        event_queue = {'e': event, 'q': queue}
+
+        gen_process = Process(target=calc, args=(calc_in, Work['persis_info'],
+                              Work['libE_info'], event_queue))
+        gen_process.start()
+        event.wait()
+        return queue.get().out
+
     def _determine_dir_then_calc(self, Work, calc_type, calc_in, calc):
         "Determines choice for sim_input_dir structure, then performs calculation."
 
@@ -312,14 +325,17 @@ class Worker:
             if self.libE_specs.get('use_worker_dirs'):
                 with self.loc_stack.loc(self.workerID):   # Switch to Worker directory
                     with self.loc_stack.loc(calc_dir):    # Switch to Calc directory
-                        out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                        # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                        out = self._calc_process(Work, calc, calc_in)
             else:
                 with self.loc_stack.loc(calc_dir):        # Switch to Calc directory
-                    out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                    # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                    out = self._calc_process(Work, calc, calc_in)
 
             return out
 
-        return calc(calc_in, Work['persis_info'], Work['libE_info'])
+        # return calc(calc_in, Work['persis_info'], Work['libE_info'])
+        return self._calc_process(Work, calc, calc_in)
 
     def _handle_calc(self, Work, calc_in):
         """Runs a calculation on this worker object.
@@ -353,7 +369,8 @@ class Worker:
                 if calc_type == EVAL_SIM_TAG:
                     out = self._determine_dir_then_calc(Work, calc_type, calc_in, calc)
                 else:
-                    out = calc(calc_in, Work['persis_info'], Work['libE_info'])
+                    out = self._calc_process(Work, calc, calc_in)
+                    # out = calc(calc_in, Work['persis_info'], Work['libE_info'])
 
                 logger.debug("Return from calc call")
 

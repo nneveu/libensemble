@@ -1,7 +1,8 @@
 import numpy as np
+from libensemble.tools import libe_return
 
 
-def gen_random_sample(H, persis_info, gen_specs, _):
+def gen_random_sample(H, persis_info, gen_specs, _, event_queue):
     # underscore parameter for internal/testing arguments
 
     # Pull out user parameters to perform calculations
@@ -21,5 +22,7 @@ def gen_random_sample(H, persis_info, gen_specs, _):
     # Replace those zeros with the random numbers
     out['x'] = persis_info['rand_stream'].uniform(lower, upper, (batch_size, num))
 
+    libe_return(out, persis_info, event_queue)
+
     # Send back our output and persis_info
-    return out, persis_info
+    # return out, persis_info

@@ -4,6 +4,7 @@ use (and return) a random stream in ``persis_info``, given by the allocation
 function.
 """
 import numpy as np
+from libensemble.tools import libe_return
 
 
 def uniform_random_sample_with_different_nodes_and_ranks(H, persis_info, gen_specs, _):
@@ -90,7 +91,7 @@ def uniform_random_sample(H, persis_info, gen_specs, _):
     return H_o, persis_info
 
 
-def latin_hypercube_sample(H, persis_info, gen_specs, _):
+def latin_hypercube_sample(H, persis_info, gen_specs, _, event_queue):
     """
     Generates ``gen_specs['user']['gen_batch_size']`` in a Latin hypercube sample over
     the domain defined by ``gen_specs['user']['ub']`` and ``gen_specs['user']['lb']``.
@@ -108,7 +109,8 @@ def latin_hypercube_sample(H, persis_info, gen_specs, _):
 
     H_o['x'] = A*(ub-lb)+lb
 
-    return H_o, persis_info
+    # return H_o, persis_info
+    libe_return(H_o, persis_info, event_queue)
 
 
 def lhs_sample(n, k):

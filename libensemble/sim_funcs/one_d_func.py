@@ -4,9 +4,10 @@ This module contains an example 1d function
 __all__ = ['one_d_example']
 
 import numpy as np
+from libensemble.tools import libe_return
 
 
-def one_d_example(x, persis_info, sim_specs, _):
+def one_d_example(x, persis_info, sim_specs, _, event_queue):
     """
     Evaluates the six hump camel function for a single point ``x``.
 
@@ -18,4 +19,5 @@ def one_d_example(x, persis_info, sim_specs, _):
 
     H_o['f'] = np.linalg.norm(x)
 
-    return H_o, persis_info
+    # return H_o, persis_info
+    libe_return(H_o, persis_info, event_queue)
