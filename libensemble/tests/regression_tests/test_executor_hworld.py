@@ -46,8 +46,6 @@ else:
     use_auto_resources = True
     mess_resources = 'Auto_resources set to True'
 
-use_auto_resources = True
-
 if is_master:
     print('\nCores req: {} Cores avail: {}\n  {}\n'.format(cores_all_tasks, logical_cores, mess_resources))
 
@@ -60,7 +58,7 @@ if USE_BALSAM:
     exctr = BalsamMPIExecutor(auto_resources=use_auto_resources)
 else:
     from libensemble.executors.mpi_executor import MPIExecutor
-    exctr = MPIExecutor(auto_resources=use_auto_resources, central_mode=True)
+    exctr = MPIExecutor(auto_resources=use_auto_resources)
 exctr.register_calc(full_path=sim_app, calc_type='sim')
 
 # if nworkers == 3:

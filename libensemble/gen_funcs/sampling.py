@@ -109,7 +109,6 @@ def latin_hypercube_sample(H, persis_info, gen_specs, _):
     H_o['x'] = A*(ub-lb)+lb
 
     return H_o, persis_info
-    # libe_return(H_o, persis_info, event_queue)
 
 
 def lhs_sample(n, k):
