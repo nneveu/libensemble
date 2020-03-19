@@ -255,7 +255,6 @@ class Worker:
         else:
             return {EVAL_SIM_TAG: run_sim, EVAL_GEN_TAG: run_gen}
 
-
     @staticmethod
     def _set_executor(workerID, comm):
         "Optional - sets worker ID in the executor, return if set"
@@ -327,7 +326,7 @@ class Worker:
         queue = Queue()
 
         process = Process(target=calc, args=(calc_in, Work['persis_info'],
-                              Work['libE_info'], event, queue))
+                                             Work['libE_info'], event, queue))
         process.start()
         event.wait()
         return queue.get().out
