@@ -285,6 +285,8 @@ class MPIExecutor(Executor):
                                         ranks_per_node, machinefile,
                                         hyperthreads)
         if jsrun_args:
+            assert self.mpi_command[0] == 'jsrun', \
+                "jsrun_args populated although 'jsrun' not detected on system."
             mpi_specs['jsrun_args'] = jsrun_args
 
         runline = launcher.form_command(self.mpi_command, mpi_specs)
