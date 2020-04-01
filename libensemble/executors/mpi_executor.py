@@ -102,7 +102,7 @@ class MPIExecutor(Executor):
             'aprun': ['aprun', '-e {env}',
                       '-L {hostlist}', '-n {num_procs}',
                       '-N {ranks_per_node}'],
-            'jsrun': ['jsrun', '--np {num_procs}'],  # Need to add more
+            'jsrun': ['jsrun', '--np {num_procs}', '{jsrun_args}'],  # Need to add more
             'srun': ['srun', '-w {hostlist}', '-n {num_procs}',
                      '--nodes {num_nodes}',
                      '--ntasks-per-node {ranks_per_node}']
@@ -211,7 +211,7 @@ class MPIExecutor(Executor):
     def submit(self, calc_type, num_procs=None, num_nodes=None,
                ranks_per_node=None, machinefile=None, app_args=None,
                stdout=None, stderr=None, stage_inout=None,
-               hyperthreads=False, test=False, wait_on_run=False):
+               hyperthreads=False, test=False, wait_on_run=False, jsrun_args=None):
         """Creates a new task, and either executes or schedules execution.
 
         The created task object is returned.
@@ -284,6 +284,9 @@ class MPIExecutor(Executor):
         mpi_specs = self._get_mpi_specs(task, num_procs, num_nodes,
                                         ranks_per_node, machinefile,
                                         hyperthreads)
+        if jsrun_args:
+            mpi_specs['jsrun_args'] = jsrun_args
+
         runline = launcher.form_command(self.mpi_command, mpi_specs)
         runline.extend(task.app.full_path.split())
         if task.app_args is not None:
