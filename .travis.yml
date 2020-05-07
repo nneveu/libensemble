@@ -72,7 +72,8 @@ install:
 
   - conda install $COMPILERS
   - conda install libblas libopenblas # Prevent 'File exists' error
-  - conda install nlopt $MUMPS mpi4py scipy $MPI
+  - conda install nlopt mpi4py scipy $MPI
+  - conda install $MUMPS
   - conda install petsc petsc4py
 
     # Begin: Dependencies only for regression tests
